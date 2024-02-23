@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "gohoardings",
+  "private_key_id": "fd4c256811702236510a15e32a2ee28620ea6a53",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDpfxtp3Aqj9KLp\nkmdp3AtCSnkZN3U8RZ7ypQfsk1b2sK/IYmbzQFPt4VAL43PwOYW9bz0CVPylmTwc\nIsqK7z2YhdRfj0NRpHIEvpMrNRqGr0k0Y25+RYrBhum/sHSyL3322t+4sWAPKLA4\nxG8+8xR0Y/BLnkZ4lUCWlxJJysXywzjnvChET19VoS3q1tPbq3DN8SoD1NpO4mnd\nr28SBAJTdNkSK943MM4NmjFkSwhPemaPbFVQQCptgHXPQo7RMfd+ZQBT5rujU3Fm\nAmn2tOU/qY8cOg/L/tEg81GP2L1IaLgwFKPVw2GGxmXF12dxn1MeFL4jDwEy4hNT\niTePWnBbAgMBAAECggEAZxYs/jGdqQEqo8B1U7FIbz399PodEj0SjcH6m6H5NPSQ\nxwFavm5aH53n/zeuShK7TwU7hDoNSPc8KJfboDc7lIkRWBch+3uEsz+ILf1F9syQ\nn0Z+09TUC9kKfgzjmH+LN18ugpYc+NRX6Ngg3UPodfJhdqEsL7SFTXbpJhcWCbT6\n8BqyJ5+VBjE/xFTp4cHmaHIEyiZoaENp9feoF0EAXik21V208oaBeP2XeQPFqzbd\n0OimUrbiVwSDo55/gVl0ohbZ1NKXpejohePD3F5MaYY6X3ruLpnPbz11zzitmNUW\n2Up7zPUuhHWo7PIZoBxJgzkp7a/icH+47XL1XSo6EQKBgQD+Qyf54oTsoBnBKvmT\nQKBZN8rzlPDIYOYh4iFC+rgmY2CwWyUAwpl7l49QPJME6ZqhXf9XUNrtoIaKQjbL\nMioFMfVPhZsJgt1fgSomTIAz46b/Gm/5rqtrjGsQBhrw1Dd+B15lrC7qSyWXgodM\nDQeJ6gA5pTX+Ig7Uh6eVnetqdQKBgQDrF57CwWbRJtSc2XIj07A5fOlq+C3j9/eg\nE3cdUy+MvYtUPZiMg7CuAQxqN/zTJsR1BFnw5BSpKyBLtPKuBDSA9pmqOdzP3k+L\nB6YwO+0pMcz7TAuvtxTg4/WNLhemHLe3I3rdbSZwq8xJ8uDHp/7iCNOVMEXEXgvy\nUvOjrRj1jwKBgG9zkndXUnrCZuekZcelIWRaL2z8EVtUFiwuCfRpIAU7tGs5WIvv\nwQVK1vgNxUf2+d/X6xAkEgLtRWwfQBNrhr3GO0hDQUU3BsBRRt+I0v1rwYy60vB4\nHw3CfD+G3ZJJA5YLttYMVng+vlieT54HbBGI79ZU08j0ttl0KQJNOZ7tAoGBAIe0\nx9F2oOpk9uBf6TJjNVvKDlfQUXVCI7BE7EKCTXV5yN7k+5VJQ4j+U/NQxGIDA+7k\nhyK2FnMc0PTCzD/Fb6VuNH/+DMf1dYc08CrxvNJFzCTX3fsdvTCghpNrov0hoK9Y\nDMmbA1CQ60lYqYa3JDvIipKZHfzfqRfF6Jx4BGtjAoGAeWFENw4TfN5KcZrRTdH0\nZhn15lTeswORXxleOV0VP74bMy3mbo1eCoCY+//4h06qq7XgTwRTRH57hH8gS/Fw\nUC6swBZthqSl3nD3KcU8pKxYXVl+5OXftftSYFwvZqYMs1HELqj8QmAm9C60cxv7\nps28rtVi8bIOednC1J9xitI=\n-----END PRIVATE KEY-----\n",
+  "client_email": "gdrive-serve@gohoardings.iam.gserviceaccount.com",
+  "client_id": "109123435565512551826",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/gdrive-serve%40gohoardings.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
