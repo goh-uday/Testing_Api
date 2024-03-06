@@ -32,6 +32,8 @@ import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs'; // fs.promises for async/await support
 import { readFileSync, createReadStream } from 'fs';
+import StaticMap  from 'google-static-map';
+import Jimp from "jimp";
 
 let https;
 try {
@@ -1923,52 +1925,73 @@ async function updateExcel(filePath, rowsToUpdate) {
   XLSX.writeFile(workbook, filePath);
 }
 
+async function checkIdExists(id) {
+  return new Promise((resolve, reject) => {
+    const checkSql = `SELECT id FROM goh_mediaa2 WHERE id = ${id}`;
+    db.query(checkSql, (error, results) => {
+      if (error) {
+        console.error('Error checking if ID exists:', error);
+        reject(error);
+      } else {
+        resolve(results.length > 0);
+      }
+    });
+  });
+}
+
 async function ExcelExtractor(ExcelJson) {
   db.changeUser({ database: 'gohoardi_goh' }, function (err) {
     if (err) throw err;
   });
 
-  const maxRowsPerBatch = 1;
+  const maxRowsPerBatch = 1000;
   let count = 0;
 
   for (const el of ExcelJson) {
+    try {
     if (count === maxRowsPerBatch) {
-      await new Promise((resolve) => setTimeout(resolve, 30 * 60 * 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1 * 60 * 1000));
       count = 0;
     }
 
-    const filePath = './excel/media.xlsx';
-    const apiKey = 'AIzaSyDEKx_jLb_baUKyDgkXvzS_o-xlOkvLpeE';
-    const drive = google.drive({ version: 'v3', auth: apiKey });
+    const idExists = await checkIdExists(el.A);
 
-    async function downloadImage(fileId, destinationPath) {
+      if (idExists) {
+        console.log(`Skipping row with ID ${el.A} as it already exists in the database.`);
+        continue;
+      }
+
+    const filePath = './excel/media.xlsx';
+
+    async function downloadImage(url, destinationPath) {
       return new Promise(async (resolve, reject) => {
         const dest = fs.createWriteStream(destinationPath);
     
         try {
-          const response = await drive.files.get(
-            { fileId: fileId, alt: 'media' },
-            { responseType: 'stream' }
-          );
+          const response = await axios({
+            url: url,
+            method: 'GET',
+            responseType: 'stream',
+          });
     
           response.data
-          .pipe(sharp()
-            .jpeg({ quality: 70 })
-            .resize({ width: 800 })
-          )
-          .pipe(dest);
+            .pipe(sharp()
+              .jpeg({ quality: 70 })
+              .resize({ width: 800 })
+            )
+            .pipe(dest);
     
           dest.on('finish', () => {
             resolve(true);
-            console.log('Image downloaded and compressed successfully');
+            console.log('Image downloaded and processed successfully');
           });
     
           dest.on('error', (err) => {
-            console.error('Error downloading or compressing the image:', err);
+            console.error('Error downloading or processing the image:', err);
             reject(false);
           });
         } catch (err) {
-          console.error('Error:', err);
+          console.error('Error:', "err");
           reject(false);
         }
       });
@@ -2064,7 +2087,7 @@ async function ExcelExtractor(ExcelJson) {
 
       db.query(sql, (error, results) => {
         if (error) {
-          console.log("error");
+          console.log("error", error);
         } else {
           const insertId = results.insertId;
           const code = `GOH${subcategory_id}T${insertId}`;
@@ -2073,6 +2096,9 @@ async function ExcelExtractor(ExcelJson) {
         }
       });
     }
+  } catch (error) {
+    console.error('An error occurred:', error);
+  }
 
     count++;
   }
@@ -2556,6 +2582,194 @@ app.get('/testing12309', async (req, res) => {
     console.error('Error transferring ownership:', error.message);
   }
 });
+
+
+/*******************                                                        */
+
+app.get("/tester002", cors(), async (req, res) => {
+  res.send("there")
+})
+
+app.get("/tester001", cors(), async (req, res) => {
+
+  const filePath = './excel/ExtractMedia.xlsx';
+
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+
+  const options = {
+    header: 'A',
+    range: 1,
+  };
+
+  const ExcelJson = XLSX.utils.sheet_to_json(worksheet, options);
+
+  ExcelExtract(ExcelJson);
+
+})
+
+async function checkIdExist(id) {
+  return new Promise((resolve, reject) => {
+    const checkSql = `SELECT id FROM goh_campaign_sites WHERE id = ${id}`;
+    db.query(checkSql, (error, results) => {
+      if (error) {
+        console.error('Error checking if ID exists:', error);
+        reject(error);
+      } else {
+        resolve(results.length > 0);
+      }
+    });
+  });
+}
+
+async function ExcelExtract(ExcelJson) {
+  db.changeUser({ database: "gohoardi_goh" }, function(err) {
+    if (err) throw err;
+  });
+
+  const maxRowsPerBatch = 200;
+  let count = 0;
+
+  for (const el of ExcelJson) {
+    try {
+      if (count === maxRowsPerBatch) {
+        await new Promise((resolve) => setTimeout(resolve, 1 * 10 * 1000));
+        count = 0;
+      }
+      const idExists = await checkIdExist(el.A);
+      if (idExists) {
+        // console.log(
+        //   `Skipping row with ID ${el.A} as it already exists in the database.`
+        // );
+        continue;
+      }
+      const words = el.P.split(" ");
+      const firstTwoWords = words.slice(0, 2);
+      const hash = firstTwoWords.join("_");
+      const price2 = el.M * 0.3 + el.M;
+
+      var lat,lng,w,h;
+
+      if (el.K === undefined) {
+        lat = '0.000000',
+        lng = '0.000000'
+      } else {
+        lat = el.K,
+        lng = el.L
+      }
+
+      if (el.G === undefined) {
+        w = 0,
+        h = 0
+      }
+
+      const sql = `INSERT INTO goh_campaign_sites (id, vendors, state, subcategory, location, illumination, city, w, h, size, quantity, hashKey, lat, lng, price, print_mount, total, price_2) VALUES (${el.A}, '${el.P}', '${el.B}', '${el.E}', '${el.D}', '${el.J}', '${el.C}', ${w}, ${h}, ${el.I}, ${el.H}, '${hash}', ${lat}, ${lng}, ${el.M}, ${el.N}, ${el.O}, ${price2})`
+      
+      db.query(sql, (error, results) => {
+        if (error) {
+          console.log("error", el.A);
+        } else {
+          const insertQuery = `
+          INSERT INTO goh_campaign_vendor (name, vendors, users, userid, password, hashKey, Campaign_id)
+          SELECT '${el.P}', '${el.P}', 10, '${hash}', 'qwerty', '${hash}', 'camp_1'
+          FROM DUAL
+          WHERE NOT EXISTS (
+            SELECT 1 FROM goh_campaign_vendor WHERE vendors = '${el.P}'
+          )`
+          db.query(insertQuery);
+          console.log("success");
+        }
+      });
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
+
+    count++;
+  }
+}
+
+
+/**                                                        ******************/
+
+
+
+const googleMapsApiKey = 'AIzaSyDEKx_jLb_baUKyDgkXvzS_o-xlOkvLpeE';
+
+
+async function generateGoogleMapsImage(lat, lng, width, height, marker) {
+  const markerIcon = encodeURIComponent('https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi.png');
+  const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=16&size=${width}x${height}&maptype=satellite&markers=icon:${markerIcon}|${lat},${lng}&key=${googleMapsApiKey}&scale=2&format=png&visual_refresh=true`;
+
+  const mapImageBuffer = await axios.get(staticMapUrl, { responseType: 'arraybuffer' });
+  return mapImageBuffer.data;
+}
+
+async function combineImages(originalImageBuffer, overlayImageBuffer, location, lat, lng, date, outputPath) {
+  try {
+    const originalImage = await sharp(originalImageBuffer);
+    const overlayImage = await sharp(overlayImageBuffer);
+
+    const { width, height } = await originalImage.metadata();
+    const rw = Math.round(width / 5)
+    const resizedOverlayImage = await overlayImage.resize(rw, rw).toBuffer();
+    const overlayPosition = {
+      left: 0,
+      top: height - rw -20,
+    };
+
+    const blackOverlay = Buffer.from(`<svg><rect width="${width}" height="${rw}" fill="rgba(0, 0, 0, 0.5)"/></svg>`);
+
+    const overlayTextSvg = `<svg height = '${rw}' width = '${width}'>
+    <text x="30%" y="${Math.round(rw / 10)}" font-size="${Math.round(rw / 10)}" font-family="Arial" fill="white">${location}</text>
+    <text x="30%" y="${Math.round(rw / 4)}" font-size="${Math.round(rw / 10)}" font-family="Arial" fill="white">H8VC+F8, E-82, E Block, Sector 6, Noida, Uttar Pradesh 201301, India</text>
+    <text x="30%" y="${Math.round(rw / 2.5)}" font-size="${Math.round(rw / 10)}" font-family="Arial" fill="white">Lat ${lat}\u00B0</text>
+    <text x="30%" y="${Math.round(rw / 1.8)}" font-size="${Math.round(rw / 10)}" font-family="Arial" fill="white">Long ${lng}\u00B0</text>
+    <text x="30%" y="${Math.round(rw / 1.4)}" font-size="${Math.round(rw / 10)}" font-family="Arial" fill="white">${date} 10:46 AM GMT +5:30</text>
+  </svg>`;
+
+
+    const overlayTextBuffer = Buffer.from(overlayTextSvg);
+
+    const finalImageBuffer = await originalImage
+      .composite([
+        { input: blackOverlay, left: 0, top: height - rw - 20},
+        { input: resizedOverlayImage, left: overlayPosition.left, top: overlayPosition.top },
+        { input: overlayTextBuffer, left: - Math.round(rw / 2.3), top: overlayPosition.top + Math.round(rw / 7.5) } ,
+      ])
+      .toBuffer();
+
+    return finalImageBuffer;
+  } catch (error) {
+    console.error('Error combining images:', error.message || error);
+    throw error;
+  }
+}
+
+
+
+
+
+app.get('/generateImage', async (req, res) => {
+  try {
+    const data = [
+      { id: 1, location : 'Sear Goverdhan Dafi, Uttar Partdesh, India', img: 'http://80.209.238.62:3002/upload/image1.jpg', lat: 28.593680, lng: 77.320831, date: '20-01-2024' }
+    ];
+
+    const originalImageBuffer = await axios.get(data[0].img, { responseType: 'arraybuffer' });
+    const googleMapsImageBuffer = await generateGoogleMapsImage(data[0].lat, data[0].lng, 150, 150, true);
+
+    const finalImageBuffer = await combineImages(originalImageBuffer.data, googleMapsImageBuffer, data[0].location, data[0].lat,  data[0].lng  , data[0].date, 'output_image.jpg');
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(finalImageBuffer);
+  } catch (error) {
+    console.error('Error generating image:', error.message || error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
 
   app.listen(3333, () => {
     console.log("Yey, your server is running on port 3333");
