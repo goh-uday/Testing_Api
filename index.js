@@ -9,7 +9,7 @@ import pptxgen from 'pptxgenjs';
 import { json } from 'express';
 import http from 'http';
 import request from 'request';
-import { log } from 'console';
+import { error, log } from 'console';
 import { resolveSoa } from 'dns';
 import url from 'url';
 import JSZip from 'jszip';
@@ -189,7 +189,7 @@ const db = mysql.createConnection({
     password: "",
     database: "gohoardi_goh",
   });
-  const db2 = mysql.createConnection({
+  const od = mysql.createConnection({
     multipleStatements: true,
     user: "root",
     host: "localhost",
@@ -1835,7 +1835,7 @@ pdf.create(renderedHtml, pdfOptions).toFile('invoice1.pdf', (err, res) => {
 
 app.get("/testing001", cors(), async (req, res) => {
 
-  const filePath = './excel/media.xlsx';
+  const filePath = './excel/bqs.xlsx';
 
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
@@ -1903,31 +1903,9 @@ async function replace(inputString) {
   return result;
 }
 
-async function removeSingleQuotes(inputString) {
-  if (typeof inputString !== 'string') {
-    throw new Error('Input must be a string');
-  }
-
-  return inputString.replace(/'/g, '');
-}
-
-
-async function updateExcel(filePath, rowsToUpdate) {
-  const workbook = XLSX.readFile(filePath);
-
-  for (const row of rowsToUpdate) {
-    const worksheet = workbook.Sheets['Sheet1'];
-    const conditionColumn = 'U';
-    const cellAddress = `${conditionColumn}${row.columnAValue}`;
-    worksheet[cellAddress] = { v: row.valueToUpdate, t: 's' };
-  }
-
-  XLSX.writeFile(workbook, filePath);
-}
-
 async function checkIdExists(id) {
   return new Promise((resolve, reject) => {
-    const checkSql = `SELECT id FROM goh_mediaa2 WHERE id = ${id}`;
+    const checkSql = `SELECT id FROM goh_bqs_audit WHERE id = ${id}`;
     db.query(checkSql, (error, results) => {
       if (error) {
         console.error('Error checking if ID exists:', error);
@@ -1944,7 +1922,7 @@ async function ExcelExtractor(ExcelJson) {
     if (err) throw err;
   });
 
-  const maxRowsPerBatch = 1000;
+  const maxRowsPerBatch = 2200;
   let count = 0;
 
   for (const el of ExcelJson) {
@@ -1961,7 +1939,6 @@ async function ExcelExtractor(ExcelJson) {
         continue;
       }
 
-    const filePath = './excel/media.xlsx';
 
     async function downloadImage(url, destinationPath) {
       return new Promise(async (resolve, reject) => {
@@ -1991,7 +1968,7 @@ async function ExcelExtractor(ExcelJson) {
             reject(false);
           });
         } catch (err) {
-          console.error('Error:', "err");
+          console.error('Error:', err);
           reject(false);
         }
       });
@@ -2000,89 +1977,34 @@ async function ExcelExtractor(ExcelJson) {
 
     const sourceFolderPath = path.resolve('./app');
     const destinationFolderPath = path.resolve('./new_app');
-    const fileId = el.Q;
+    const fileId = el.S;
     const filename = await getRandomFileName();
     const folder = await copyFolderWithCustomName(sourceFolderPath, destinationFolderPath, el.B);
 
     if (folder) {
       const destinationPath = `./new_app/${folder}/media/images/${filename}`;
       const result = await downloadImage(fileId, destinationPath);
-      const rowsToUpdate = [];
-      const columnAValue = el.A;
 
-      if (result === true) {
-        rowsToUpdate.push({ columnAValue, valueToUpdate: 'true' });
-      } else if (result === false) {
-        rowsToUpdate.push({ columnAValue, valueToUpdate: 'false' });
-      }
-
-      await updateExcel(filePath, rowsToUpdate);
-
-      var subcategory_id;
-      switch (el.H) {
-        case "Billboard":
-          subcategory_id = 112;
-          break;
-        case "Hoarding":
-          subcategory_id = 112;
-          break;
-        case "Police Booth":
-          subcategory_id = 172;
-          break;
-        case "Gentry":
-          subcategory_id = 124;
-          break;
-        case "Unipole":
-          subcategory_id = 173;
-          break;
-        case "Bridge Panel":
-          subcategory_id = 113;
-          break;
-        case "FOB":
-          subcategory_id = 122;
-          break;
-        case "Cantilever":
-          subcategory_id = 117;
-          break;
-        case "FSU":
-          subcategory_id = 174;
-          break;
-        case "Utility":
-          subcategory_id = 175;
-          break;
-        case "Minipole":
-          subcategory_id = 176;
-          break;
-        default:
-          subcategory_id = 999;
-          break;
-      }
+      var subcategory_id = 998;
 
       
-      
-      const price2 = el.P * 0.3 + el.P;
-      const title = await replace(el.E);
-      const page_title = `${el.H}-at-${title}-Gohoardings-Solution`;
+      const price2 = el.T * 0.3 + el.T;
+      const title = await replace(el.D);
+      const page_title = `BQS-at-${title}-Gohoardings-Solution`;
       const thumb = `https://${folder}.odoads.com/media/${folder}/media/images/${filename}`;
-      const loc = await removeSingleQuotes(el.E);
 
-      var status,lat,lng;
+      var lat,lng;
 
-      if (result === true) {
-        status = 1;
-      } else {
-        status = 0;
-      }
-
-      if (el.N === undefined) {
+      if (el.Q === undefined) {
         lat = '0.000000',
         lng = '0.000000'
       } else {
-        lat = el.N,
-        lng = el.O
+        lat = el.Q,
+        lng = el.R
       }
 
-      const sql = "INSERT INTO goh_mediaa2 (id,status,media_owner_code,thumbnail,thumb,main_media_id,client_id,category_id,category_name,subcategory_id,subcategory,medianame,saleasbunch,totalno,price_2,price,state,city,city_name,width,height,illumination,latitude,longitude,page_title,mediaownercompanyname,area,location,mediaownername,email,phonenumber,keyword,ftf) VALUES ("+el.A+",'"+status+"', '"+folder+"', '"+thumb+"', '"+thumb+"', 0, 0, 20, 'traditional-ooh-media', '"+subcategory_id+"', '"+el.H+"', '"+loc+"', '"+el.K+"', 1, '"+price2+"', '"+el.P+"', 0, 0, '"+el.D+"', '"+el.I+"', '"+el.J+"', '"+el.M+"', '"+lat+"', '"+lng+"', '"+page_title+"', '"+el.B+"', '"+el.L+"', '"+loc+"', '"+el.T+"', '"+el.R+"', '"+el.S+"', '"+el.G+"', '"+el.F+"')";
+
+      const sql = `INSERT INTO goh_bqs_audit (id, vendors, media_owner_code, page_title, state, city, shelter_name, road_name, area, location, front_panel, side_panel, side_qty, back_drop, back_qty, bqs_qty, size, illumination, lat, lng, thumb, price, price_2, keyword, email, phone, contact_person) VALUES (${el.A}, '${el.B}', '${folder}', '${page_title}', '${el.C}', '${el.D}', '${el.E}', '${el.F}', '${el.G}', '${el.H}', '${el.I}', '${el.J}', '${el.K}','${el.L}','${el.M}','${el.N}','${el.O}','${el.P}', ${lat}, ${lng}, '${thumb}' ,${el.T}, ${price2},'${el.X}', '${el.U}','${el.V}','${el.W}')`;
       
 
       db.query(sql, (error, results) => {
@@ -2091,7 +2013,7 @@ async function ExcelExtractor(ExcelJson) {
         } else {
           const insertId = results.insertId;
           const code = `GOH${subcategory_id}T${insertId}`;
-          const updateSql = `UPDATE goh_mediaa2 SET code = '${code}' WHERE id = ${insertId}`;
+          const updateSql = `UPDATE goh_bqs_audit SET code = '${code}' WHERE id = ${insertId}`;
           db.query(updateSql);
         }
       });
@@ -2592,7 +2514,7 @@ app.get("/tester002", cors(), async (req, res) => {
 
 app.get("/tester001", cors(), async (req, res) => {
 
-  const filePath = './excel/ExtractMedia.xlsx';
+  const filePath = './excel/bus.xlsx';
 
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
@@ -2611,7 +2533,7 @@ app.get("/tester001", cors(), async (req, res) => {
 
 async function checkIdExist(id) {
   return new Promise((resolve, reject) => {
-    const checkSql = `SELECT id FROM goh_campaign_sites WHERE id = ${id}`;
+    const checkSql = `SELECT id FROM goh_bqs_audit WHERE id = ${id}`;
     db.query(checkSql, (error, results) => {
       if (error) {
         console.error('Error checking if ID exists:', error);
@@ -2628,56 +2550,43 @@ async function ExcelExtract(ExcelJson) {
     if (err) throw err;
   });
 
-  const maxRowsPerBatch = 200;
+  const maxRowsPerBatch = 10000;
   let count = 0;
 
   for (const el of ExcelJson) {
     try {
-      if (count === maxRowsPerBatch) {
-        await new Promise((resolve) => setTimeout(resolve, 1 * 10 * 1000));
-        count = 0;
-      }
-      const idExists = await checkIdExist(el.A);
-      if (idExists) {
-        // console.log(
-        //   `Skipping row with ID ${el.A} as it already exists in the database.`
-        // );
-        continue;
-      }
-      const words = el.P.split(" ");
+      // if (count === maxRowsPerBatch) {
+      //   await new Promise((resolve) => setTimeout(resolve, 1 * 10 * 1000));
+      //   count = 0;
+      // }
+      // const idExists = await checkIdExist(el.A);
+      // if (idExists) {
+      //   console.log(
+      //     `Skipping row with ID ${el.A} as it already exists in the database.`
+      //   );
+      //   continue;
+      // }
+      const words = el.G.split(" ");
       const firstTwoWords = words.slice(0, 2);
       const hash = firstTwoWords.join("_");
-      const price2 = el.M * 0.3 + el.M;
 
-      var lat,lng,w,h;
+      const sql = `INSERT INTO goh_bus_audit (id, vendors, contact_number, state, subcategory, category, city, quantity, loginUsers, hashKey) VALUES (${el.A},'${el.G}','${el.H}','${el.C}','${el.D}','${el.E}','${el.B}',${el.F},'10','${hash}')`
 
-      if (el.K === undefined) {
-        lat = '0.000000',
-        lng = '0.000000'
-      } else {
-        lat = el.K,
-        lng = el.L
-      }
-
-      if (el.G === undefined) {
-        w = 0,
-        h = 0
-      }
-
-      const sql = `INSERT INTO goh_campaign_sites (id, vendors, state, subcategory, location, illumination, city, w, h, size, quantity, hashKey, lat, lng, price, print_mount, total, price_2) VALUES (${el.A}, '${el.P}', '${el.B}', '${el.E}', '${el.D}', '${el.J}', '${el.C}', ${w}, ${h}, ${el.I}, ${el.H}, '${hash}', ${lat}, ${lng}, ${el.M}, ${el.N}, ${el.O}, ${price2})`
+      // const sql = `INSERT INTO goh_bqs_audit (id, vendors, state, city, shelter_name, road_name, area, location, front_panel, side_panel, side_qty, back_drop, back_qty, bqs_qty, size, illumination, lat, lng, thumb, price, hashKey, price_2) 
+      // VALUES (${el.A}, '${el.B}', '${el.C}', '${el.D}', '${el.E}', '${el.F}', '${el.G}', '${el.H}', '${el.I}', '${el.J}', '${el.K}','${el.L}','${el.M}','${el.N}','${el.O}','${el.P}', ${lat}, ${lng}, '${el.S}' ,${el.T}, '${hash}', ${price2})`
       
       db.query(sql, (error, results) => {
         if (error) {
-          console.log("error", el.A);
+          console.log("error", el.A ,  error);
         } else {
-          const insertQuery = `
-          INSERT INTO goh_campaign_vendor (name, vendors, users, userid, password, hashKey, Campaign_id)
-          SELECT '${el.P}', '${el.P}', 10, '${hash}', 'qwerty', '${hash}', 'camp_1'
-          FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM goh_campaign_vendor WHERE vendors = '${el.P}'
-          )`
-          db.query(insertQuery);
+          // const insertQuery = `
+          // INSERT INTO goh_campaign_vendor (name, vendors, users, userid, password, hashKey, Campaign_id)
+          // SELECT '${el.B}', '${el.B}', 10, '${hash}', 'qwerty', '${hash}', 'camp_1'
+          // FROM DUAL
+          // WHERE NOT EXISTS (
+          //   SELECT 1 FROM goh_campaign_vendor WHERE vendors = '${el.B}'
+          // )`
+          // db.query(insertQuery);
           console.log("success");
         }
       });
@@ -2768,6 +2677,49 @@ app.get('/generateImage', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+
+app.get('/api/mediaOwners', async (req, res) => {
+  try {
+    // SELECT data from the table
+    const selectResults = await query('SELECT DISTINCT(media_owner_code), mediaownercompanyname, mediaownername, email, phonenumber FROM `goh_mediaa2`');
+
+    // INSERT selected data into tblcompanies
+    for (const mediaOwner of selectResults) {
+      let sql = `INSERT INTO tblcompanies SET name='${mediaOwner.mediaownercompanyname}',code='${mediaOwner.media_owner_code}',contact_firstname='${mediaOwner.mediaownername}',contact_email='${mediaOwner.email}',contact_phone='${mediaOwner.phonenumber}',contact_password = '$2a$08$TRfrKOqNtJyMoXkuyc90P.ubOzjPwpmwHR7gNaomDJEBTPhOPJ7DS',register='true',db_created='new',add_by='self'`;
+      odquery(sql)
+    }    
+
+    res.status(201).json({ message: 'Data inserted successfully' });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+function query(sql) {
+  return new Promise((resolve, reject) => {
+    db.query(sql, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+}
+
+function odquery(sql) {
+  return new Promise((resolve, reject) => {
+    od.query(sql, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+}
 
 
 

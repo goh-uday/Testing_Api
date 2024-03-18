@@ -35,8 +35,8 @@ const ImageDropdown = ({ images }) => {
 
 const images = [
   'https://bright_outdoor.odoads.com/media/bright_outdoor/media/images/image_2603179.jpeg',
-  'https://bright_outdoor.odoads.com/media/bright_outdoor/media/images/image_2603179.jpeg',
-  'https://bright_outdoor.odoads.com/media/bright_outdoor/media/images/image_2603179.jpeg',
+  'https://woohooads.odoads.com/media/woohooads/media/images/InternationalBusinessCenterPiplodOutdoor.jpg',
+  'https://woohooads.odoads.com/media/woohooads/media/images/OppKKVHallRajkot.jpg',
   // Add more image URLs as needed
 ];
 
