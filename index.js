@@ -34,6 +34,7 @@ import fs from 'fs'; // fs.promises for async/await support
 import { readFileSync, createReadStream } from 'fs';
 import StaticMap  from 'google-static-map';
 import Jimp from "jimp";
+import nodemailer from 'nodemailer'
 
 let https;
 try {
@@ -2514,7 +2515,7 @@ app.get("/tester002", cors(), async (req, res) => {
 
 app.get("/tester001", cors(), async (req, res) => {
 
-  const filePath = './excel/bus.xlsx';
+  const filePath = './excel/audit.xlsx';
 
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
@@ -2533,7 +2534,7 @@ app.get("/tester001", cors(), async (req, res) => {
 
 async function checkIdExist(id) {
   return new Promise((resolve, reject) => {
-    const checkSql = `SELECT id FROM goh_bqs_audit WHERE id = ${id}`;
+    const checkSql = `SELECT id FROM goh_audit_sites WHERE id = ${id}`;
     db.query(checkSql, (error, results) => {
       if (error) {
         console.error('Error checking if ID exists:', error);
@@ -2559,18 +2560,18 @@ async function ExcelExtract(ExcelJson) {
       //   await new Promise((resolve) => setTimeout(resolve, 1 * 10 * 1000));
       //   count = 0;
       // }
-      // const idExists = await checkIdExist(el.A);
-      // if (idExists) {
-      //   console.log(
-      //     `Skipping row with ID ${el.A} as it already exists in the database.`
-      //   );
-      //   continue;
-      // }
-      const words = el.G.split(" ");
-      const firstTwoWords = words.slice(0, 2);
-      const hash = firstTwoWords.join("_");
+      const idExists = await checkIdExist(el.A);
+      if (idExists) {
+        console.log(
+          `Skipping row with ID ${el.A} as it already exists in the database.`
+        );
+        continue;
+      }
+      // const words = el.G.split(" ");
+      // const firstTwoWords = words.slice(0, 2);
+      // const hash = firstTwoWords.join("_");
 
-      const sql = `INSERT INTO goh_bus_audit (id, vendors, contact_number, state, subcategory, category, city, quantity, loginUsers, hashKey) VALUES (${el.A},'${el.G}','${el.H}','${el.C}','${el.D}','${el.E}','${el.B}',${el.F},'10','${hash}')`
+      const sql = `INSERT INTO goh_audit_sites (id, vendors, state, city, location, subcategory, illumination, w, h, size, quantity, hashKey) VALUES (${el.A},'goh','${el.B}','${el.C}','${el.D}','${el.E}','${el.F}','${el.G}','${el.H}','${el.I}',${el.J},'goh')`
 
       // const sql = `INSERT INTO goh_bqs_audit (id, vendors, state, city, shelter_name, road_name, area, location, front_panel, side_panel, side_qty, back_drop, back_qty, bqs_qty, size, illumination, lat, lng, thumb, price, hashKey, price_2) 
       // VALUES (${el.A}, '${el.B}', '${el.C}', '${el.D}', '${el.E}', '${el.F}', '${el.G}', '${el.H}', '${el.I}', '${el.J}', '${el.K}','${el.L}','${el.M}','${el.N}','${el.O}','${el.P}', ${lat}, ${lng}, '${el.S}' ,${el.T}, '${hash}', ${price2})`
@@ -2721,6 +2722,81 @@ function odquery(sql) {
   });
 }
 
+
+
+
+/*************************************************************************/
+
+app.get("/bulkMailer", cors(), async (req, res) => {
+
+  const filePath = './excel/vendor.csv';
+
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+
+  const options = {
+    header: 'A',
+    range: 0,
+  };
+
+  const ExcelJson = XLSX.utils.sheet_to_json(worksheet, options);
+
+  SendMailer(ExcelJson);
+
+})
+
+async function SendMailer(ExcelJson) {
+
+  for (const el of ExcelJson) {
+    try {
+
+    const Hello = `<h2>Dear, ${el.B}</h2>`
+
+    const msg = `<p><strong>Company : ${el.A} <br> Email : ${el.C} <br> Password : qwerty</strong></p>`
+
+    var htmlContent = fs.readFileSync(path.resolve( './mail.html'), 'utf8');
+    htmlContent = htmlContent.replace('{{message}}', msg);
+    htmlContent = htmlContent.replace('{{hello}}', Hello);
+
+   const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    auth: {
+      user: 'update@gohoardings.com',
+      pass: 'rkdz apjw blde dsck',
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+
+
+  const mailOptions = {
+    from: 'Gohoardings <update@gohoardings.com>',
+    to: `${el.C}`,
+    subject: 'Welcome to Odoads! Explore the exclusive features now',
+    html: htmlContent
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+     
+      return console.log(error);
+    } else {
+    
+      return console.log('success');
+    }
+});
+
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
+
+  }
+}
+
+/*************************************************************************/
 
 
   app.listen(3333, () => {
