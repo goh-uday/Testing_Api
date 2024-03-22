@@ -35,6 +35,7 @@ import { readFileSync, createReadStream } from 'fs';
 import StaticMap  from 'google-static-map';
 import Jimp from "jimp";
 import nodemailer from 'nodemailer'
+import moment from 'moment-timezone';
 
 let https;
 try {
@@ -2515,7 +2516,7 @@ app.get("/tester002", cors(), async (req, res) => {
 
 app.get("/tester001", cors(), async (req, res) => {
 
-  const filePath = './excel/audit.xlsx';
+  const filePath = './excel/auditnew.xlsx';
 
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
@@ -2534,7 +2535,7 @@ app.get("/tester001", cors(), async (req, res) => {
 
 async function checkIdExist(id) {
   return new Promise((resolve, reject) => {
-    const checkSql = `SELECT id FROM goh_audit_sites WHERE id = ${id}`;
+    const checkSql = `SELECT id FROM goh_audit WHERE id = ${id}`;
     db.query(checkSql, (error, results) => {
       if (error) {
         console.error('Error checking if ID exists:', error);
@@ -2571,7 +2572,7 @@ async function ExcelExtract(ExcelJson) {
       // const firstTwoWords = words.slice(0, 2);
       // const hash = firstTwoWords.join("_");
 
-      const sql = `INSERT INTO goh_audit_sites (id, vendors, state, city, location, subcategory, illumination, w, h, size, quantity, hashKey) VALUES (${el.A},'goh','${el.B}','${el.C}','${el.D}','${el.E}','${el.F}','${el.G}','${el.H}','${el.I}',${el.J},'goh')`
+      const sql = `INSERT INTO goh_audit (id, state, city, location, subcategory, illumination, w, h, size, quantity, hashKey) VALUES (${el.A},'goh','${el.B}','${el.C}','${el.D}','${el.E}','${el.F}','${el.G}','${el.H}','${el.I}',${el.J},'goh')`
 
       // const sql = `INSERT INTO goh_bqs_audit (id, vendors, state, city, shelter_name, road_name, area, location, front_panel, side_panel, side_qty, back_drop, back_qty, bqs_qty, size, illumination, lat, lng, thumb, price, hashKey, price_2) 
       // VALUES (${el.A}, '${el.B}', '${el.C}', '${el.D}', '${el.E}', '${el.F}', '${el.G}', '${el.H}', '${el.I}', '${el.J}', '${el.K}','${el.L}','${el.M}','${el.N}','${el.O}','${el.P}', ${lat}, ${lng}, '${el.S}' ,${el.T}, '${hash}', ${price2})`
@@ -2623,6 +2624,14 @@ async function combineImages(originalImageBuffer, overlayImageBuffer, location, 
     const { width, height } = await originalImage.metadata();
     const rw = Math.round(width / 5)
     const resizedOverlayImage = await overlayImage.resize(rw, rw).toBuffer();
+
+
+    const response = await axios.get('https://gohoardings.com/images/web_pics/logo.png', { responseType: 'arraybuffer' });
+    const logBuffer = Buffer.from(response.data, 'binary');
+    const logoBuffer = await sharp(logBuffer)
+    .resize(rw, null)
+    .toBuffer();
+
     const overlayPosition = {
       left: 0,
       top: height - rw -20,
@@ -2645,7 +2654,8 @@ async function combineImages(originalImageBuffer, overlayImageBuffer, location, 
       .composite([
         { input: blackOverlay, left: 0, top: height - rw - 20},
         { input: resizedOverlayImage, left: overlayPosition.left, top: overlayPosition.top },
-        { input: overlayTextBuffer, left: - Math.round(rw / 2.3), top: overlayPosition.top + Math.round(rw / 7.5) } ,
+        { input: overlayTextBuffer, left: - Math.round(rw / 2.3), top: overlayPosition.top + Math.round(rw / 7.5) },
+        { input: logoBuffer, left: width - rw, top: height - rw -20 },
       ])
       .toBuffer();
 
@@ -2655,9 +2665,6 @@ async function combineImages(originalImageBuffer, overlayImageBuffer, location, 
     throw error;
   }
 }
-
-
-
 
 
 app.get('/generateImage', async (req, res) => {
@@ -2678,6 +2685,9 @@ app.get('/generateImage', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+
+
 
 
 app.get('/api/mediaOwners', async (req, res) => {
@@ -2709,6 +2719,15 @@ function query(sql) {
     });
   });
 }
+
+
+app.get('/time', async (req, res) => {
+    const formattedDateTime = moment().subtract(2, 'days').tz('Asia/Kolkata');
+	  let formattedString = formattedDateTime.format('DD/MM/YY hh:mm A [GMT] ZZ');
+    formattedString = formattedString.replace(/([+-]\d{2})(\d{2})/, "$1:$2")
+    res.send(formattedString);
+})
+
 
 function odquery(sql) {
   return new Promise((resolve, reject) => {
