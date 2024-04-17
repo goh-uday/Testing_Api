@@ -36,6 +36,7 @@ import StaticMap  from 'google-static-map';
 import Jimp from "jimp";
 import nodemailer from 'nodemailer'
 import moment from 'moment-timezone';
+import cheerio from 'cheerio';
 
 let https;
 try {
@@ -197,6 +198,13 @@ const db = mysql.createConnection({
     host: "localhost",
     password: "",
     database: "odoads_tblcompanies",
+  });
+  const gc = mysql.createConnection({
+    multipleStatements: true,
+    user: "root",
+    host: "localhost",
+    password: "",
+    database: "gohoardi_crmapp",
   });
 
   app.get("/", cors(), (req, res) => {
@@ -2516,7 +2524,7 @@ app.get("/tester002", cors(), async (req, res) => {
 
 app.get("/tester001", cors(), async (req, res) => {
 
-  const filePath = './excel/auditnew.xlsx';
+  const filePath = './excel/Patna.xlsx';
 
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
@@ -2535,7 +2543,7 @@ app.get("/tester001", cors(), async (req, res) => {
 
 async function checkIdExist(id) {
   return new Promise((resolve, reject) => {
-    const checkSql = `SELECT id FROM goh_audit WHERE id = ${id}`;
+    const checkSql = `SELECT id FROM goh_audited_sites WHERE id = ${id}`;
     db.query(checkSql, (error, results) => {
       if (error) {
         console.error('Error checking if ID exists:', error);
@@ -2571,8 +2579,9 @@ async function ExcelExtract(ExcelJson) {
       // const words = el.G.split(" ");
       // const firstTwoWords = words.slice(0, 2);
       // const hash = firstTwoWords.join("_");
+      const random = Math.floor(Math.random() * 100) + 1;
 
-      const sql = `INSERT INTO goh_audit (id, state, city, location, subcategory, illumination, w, h, size, quantity, hashKey) VALUES (${el.A},'goh','${el.B}','${el.C}','${el.D}','${el.E}','${el.F}','${el.G}','${el.H}','${el.I}',${el.J},'goh')`
+      const sql = `INSERT INTO goh_audited_sites (id, state, city, location, subcategory, illumination, w, h, quantity, size, hashKey, vendors) VALUES (${el.A},'${el.B}','${el.C}','${el.D}','${el.E}','${el.F}','${el.G}','${el.H}','${el.I}',${el.J},'audited','patna')`
 
       // const sql = `INSERT INTO goh_bqs_audit (id, vendors, state, city, shelter_name, road_name, area, location, front_panel, side_panel, side_qty, back_drop, back_qty, bqs_qty, size, illumination, lat, lng, thumb, price, hashKey, price_2) 
       // VALUES (${el.A}, '${el.B}', '${el.C}', '${el.D}', '${el.E}', '${el.F}', '${el.G}', '${el.H}', '${el.I}', '${el.J}', '${el.K}','${el.L}','${el.M}','${el.N}','${el.O}','${el.P}', ${lat}, ${lng}, '${el.S}' ,${el.T}, '${hash}', ${price2})`
@@ -2583,10 +2592,10 @@ async function ExcelExtract(ExcelJson) {
         } else {
           // const insertQuery = `
           // INSERT INTO goh_campaign_vendor (name, vendors, users, userid, password, hashKey, Campaign_id)
-          // SELECT '${el.B}', '${el.B}', 10, '${hash}', 'qwerty', '${hash}', 'camp_1'
+          // SELECT '${el.C}', '${el.C}', 10, 'goh', 'qwerty', '${el.C}', 'camp_01'
           // FROM DUAL
           // WHERE NOT EXISTS (
-          //   SELECT 1 FROM goh_campaign_vendor WHERE vendors = '${el.B}'
+          //   SELECT 1 FROM goh_campaign_vendor WHERE vendors = '${el.C}'
           // )`
           // db.query(insertQuery);
           console.log("success");
@@ -2816,6 +2825,94 @@ async function SendMailer(ExcelJson) {
 }
 
 /*************************************************************************/
+
+
+async function scrapeData(url, selector) {
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+
+    const scrapedData = $(selector).text().trim();
+
+    return scrapedData;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+function extractDetails(data) {
+
+  // Extract address
+  const addressRegex = /Address\s*([^]+?)(?=\s*Email)/;
+  const addressMatch = data.match(addressRegex);
+  const address = addressMatch ? addressMatch[1].trim() : "N/A";
+
+  // Extract email
+  const emailRegex = /Email\s*([^\s]+@[^\s]+\.(?:com|in|COM|IN|Com|In))/;
+  const emailMatch = data.match(emailRegex);
+  const email = emailMatch ? emailMatch[1] : "N/A";
+
+  return {address, email };
+}
+
+
+app.get("/scrap", cors(), async (req, res) => {
+  const filePath = './excel/comp.xlsx';
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+
+  const options = {
+    header: 'A',
+    range: 1,
+  };
+
+  const ExcelJson = XLSX.utils.sheet_to_json(worksheet, options);
+  var count = 0;
+  
+  for (const el of ExcelJson) {
+    const cmpnyUrl = el.C.replace(/ /g, "-");
+    const targetUrl = `https://www.companydetails.in/company/${cmpnyUrl}`;
+    const targetSelector = 'a, h6';
+
+    try {
+      const data = await scrapeData(targetUrl, targetSelector);
+      
+      if (data) {
+        const { address, email } = extractDetails(data);
+        const existingCINQuery = `SELECT * FROM cin_details WHERE cin = '${el.A}'`;
+        
+        const result = await new Promise((resolve, reject) => {
+          db.query(existingCINQuery, (err, result) => {
+            if (err) reject(err);
+            resolve(result);
+          });
+        });
+
+        if (result.length === 0) {
+          const insertQuery = `INSERT INTO cin_details (cin, name, address, email) VALUES ('${el.A}', '${el.C}', '${address}', '${email}')`;
+          
+          await new Promise((resolve, reject) => {
+            db.query(insertQuery, (err, result2) => {
+              if (err) reject(err);
+              count++;
+              console.log("Success ", count);
+              resolve();
+            });
+          });
+        } else {
+          console.log(`${el.A} CIN already exists.`);
+        }
+      } else {
+        console.log('No data found for the provided selector.');
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
+  }
+});
+
 
 
   app.listen(3333, () => {
