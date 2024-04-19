@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+</head>
+<body>
+    <h1>Welcome to the Home Page</h1>
+    <button onclick="loginWithAuth0()">Login with Auth0</button>
+
+    <script src="https://cdn.auth0.com/js/auth0/9.12/auth0.min.js"></script>
+    <script>
+        async function loginWithAuth0() {
+            try {
+                const auth0 = new Auth0WebAuth({
+                    domain: '<%= auth0Domain %>',
+                    clientID: '<%= auth0ClientId %>',
+                    redirectUri: '<%= redirectUri %>'
+                });
+
+                auth0.authorize();
+            } catch (error) {
+                console.error('Error occurred during login:', error);
+            }
+        }
+    </script>
+</body>
+</html>

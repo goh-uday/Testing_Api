@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn OAuth</title>
+</head>
+<body>
+  <h1>LinkedIn OAuth</h1>
+  <p>Click the button below to initiate LinkedIn authorization:</p>
+  <button onclick="initiateLinkedInAuth()">Authorize with LinkedIn</button>
+
+  <script>
+    function initiateLinkedInAuth() {
+      // Redirect to the route that initiates LinkedIn authorization
+      window.location.href = '/auth/linkedin';
+    }
+  </script>
+</body>
+</html>
