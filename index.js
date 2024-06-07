@@ -1777,7 +1777,7 @@ fetch(apiUrl, {
 app.get("/testing003", cors(), async (req, res) => {
 
 // Set your API key
-const apiKey = 'AIzaSyDEKx_jLb_baUKyDgkXvzS_o-xlOkvLpeE';
+const apiKey = 'AIzaSyDEKx_xlOkvLpeE';
 
 // Create the Drive client
 const drive = google.drive({ version: 'v3', auth: apiKey });
@@ -2631,7 +2631,7 @@ async function ExcelExtract(ExcelJson) {
 
 
 
-const googleMapsApiKey = 'AIzaSyDEKx_jLb_baUKyDgkXvzS_o-xlOkvLpeE';
+const googleMapsApiKey = 'AIzaSyDEKx_xlOkvLpeE';
 
 
 async function generateGoogleMapsImage(lat, lng, width, height, marker) {
