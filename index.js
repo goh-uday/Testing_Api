@@ -1807,9 +1807,9 @@ downloadImage(fileId, destinationPath);
   
   })
 
-app.get("/testing004", cors(), async (req, res) => {
-  
-// Load the invoice template
+
+  app.get("/798", (req, res) => {
+    // Load the invoice template
 const template = fs.readFileSync('invoice-template.hbs', 'utf-8');
 
 // Compile the template
@@ -1826,19 +1826,36 @@ const invoiceData = {
 // Render the template with the invoice data
 const renderedHtml = compiledTemplate(invoiceData);
 
-// Set the options for pdf creation
-const pdfOptions = {
-  format: 'Letter',
-};
+res.send(renderedHtml);
+  });
 
-// Create the PDF from the rendered HTML
-pdf.create(renderedHtml, pdfOptions).toFile('invoice1.pdf', (err, res) => {
-  if (err) {
-    console.error(err);
-  } else {
-    console.log('Invoice PDF created successfully');
-  }
-});
+app.get("/testing004", cors(), async (req, res) => {
+  
+
+  const template = fs.readFileSync('invoice-template.hbs', 'utf-8');
+
+  const compiledTemplate = Handlebars.compile(template);
+
+  const invoiceData = {
+    items: [
+      { SNO : '1', Description : 'Location 01_Non Lit', HSN : '998361',Size : '3x4',Area : '12',Quantity : '2',Rate : '1.00',Uom : 'NOS',Amount : '24.00'},
+      { SNO : '1', Description : 'Location 01_Non Lit', HSN : '998361',Size : '3x4',Area : '12',Quantity : '2',Rate : '1.00',Uom : 'NOS',Amount : '24.00'}
+    ],
+  };
+
+  const renderedHtml = compiledTemplate(invoiceData);
+
+  const pdfOptions = {
+    format: 'Letter',
+  };
+
+  pdf.create(renderedHtml, pdfOptions).toFile('invoice1.pdf', (err, res) => {
+    if (err) {
+      console.error(err);
+    } else {
+      console.log('Invoice PDF created successfully');
+    }
+  });
 
 });
 
