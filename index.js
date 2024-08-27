@@ -206,6 +206,13 @@ const db = mysql.createConnection({
     password: "",
     database: "gohoardi_crmapp",
   });
+  const conn = mysql.createConnection({
+    multipleStatements: true,
+    user: "root",
+    host: "localhost",
+    password: "",
+    database: "test _goh",
+  });
 
   app.get("/", cors(), (req, res) => {
       res.send("Hello")
@@ -2948,7 +2955,7 @@ app.get("/extractGoh", cors(), async (req, res) => {
   //   for (const el of ExcelJson) {
   //     const insertQuery = `INSERT INTO table (a, b) VALUES ('${el.A}', '${el.B}')`;
   //     await new Promise((resolve, reject) => {
-  //       db.query(insertQuery, (err, result) => {
+  //       conn.query(insertQuery, (err, result) => {
   //         if (err) return reject(err);
   //         count++;
   //         console.log("Success ", count);
