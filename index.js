@@ -2931,6 +2931,43 @@ app.get("/scrap", cors(), async (req, res) => {
 });
 
 
+/*************************************************************************/
+
+
+app.get("/extractGoh", cors(), async (req, res) => {
+  const filePath = "./excel/cinema.xlsx";
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+
+  const ExcelJson = XLSX.utils.sheet_to_json(worksheet);
+  let count = 0;
+
+  return res.send(ExcelJson)
+  // try {
+  //   for (const el of ExcelJson) {
+  //     const insertQuery = `INSERT INTO table (a, b) VALUES ('${el.A}', '${el.B}')`;
+  //     await new Promise((resolve, reject) => {
+  //       db.query(insertQuery, (err, result) => {
+  //         if (err) return reject(err);
+  //         count++;
+  //         console.log("Success ", count);
+  //         resolve(result);
+  //       });
+  //     });
+  //   }
+  //   res.status(200).send(`Successfully inserted ${count} records.`);
+  // } catch (error) {
+  //   console.error("An error occurred:", error);
+  //   res.status(500).send("An error occurred while processing the data.");
+  // }
+});
+
+
+
+/*************************************************************************/
+
+
 
   app.listen(3333, () => {
     console.log("Yey, your server is running on port 3333");
