@@ -4036,13 +4036,12 @@ app.get("/extractGohRadio", cors(), async (req, res) => {
     
           // Insert into radio_attributes
           const attributes = [
-            { name: 'Language', value: el["Language"],  tooltip: el["l tooltip"] },
-            { name: 'Frequency', value: el["Frequency"],  tooltip: el["tooltip"] },
-            { name: 'Cover Price', value: el["Cover Price"],  tooltip: el["tooltip"] },
-            { name: 'Circulation', value: el["Circulation"],  tooltip: el["tooltip"] },
-            { name: 'Category', value: el["Atr Category"],  tooltip: el["tooltip"] },
-            { name: 'noOfPages', value: el["noOfPages"],  tooltip: el["tooltip"] },
-            { name: 'Readership', value: el["Readership"],  tooltip: el["r tooltip"] },
+            { name: 'Language', value: el["Language"],  tooltip: el["l tooltip"], icon: el["icon"]  },
+            { name: 'Frequency', value: el["Frequency"],  tooltip: el["tooltip"], icon: el["f_icon"]  },
+            { name: 'City Rank', value: el["City Rank"],  tooltip: el["c_tooltip"], icon: el["c_icon"]  },
+            { name: 'Weekly Listenership', value: el["Weekly Listenership"],  tooltip: el["w_tooltip"], icon: el["w_icon"]  },
+            { name: 'Prime Time', value: el["Prime Time"],  tooltip: el["tooltip"], icon: el["icon"]  },
+            { name: 'Station', value: el["Station"],  tooltip: el["tooltip"], icon: el["icon"]  },
           ];
           for (const attr of attributes) {
             const attributesInsertQuery = `
@@ -4055,7 +4054,6 @@ app.get("/extractGohRadio", cors(), async (req, res) => {
           // Insert into radio_medias_additionalinfo
           const additionalInfoFields = [
             { key: 'Campaign Guidlines', value: el["Campaign Guidlines"] },
-            { key: 'Art work submission deadline', value: el["Art work submission deadline"] },
           ];
           for (const info of additionalInfoFields) {
             const additionalInfoInsertQuery = `
@@ -4126,8 +4124,7 @@ app.get("/extractGohRadio", cors(), async (req, res) => {
     
           if (el["specification audio"] === true) {
             const audioFields = [
-              { key: 'Audio Format', value: el["audio format"] },
-              { key: 'Other Artwork Related', value: el["audio Other artwork relate"] },
+              { key: 'Audio Format', value: el["audio format"] }
             ];
             for (const field of audioFields) {
               const specsFieldsInsertQuery = `
@@ -4163,7 +4160,7 @@ app.get("/extractGohRadio", cors(), async (req, res) => {
     
           // Insert into radio_medias_variablepricingunits
           const variablePricingUnits = [
-            { name: 'Position', value: el["Position value"], allValues: el["Position all values"] },
+            { name: 'Time Band', value: el["Time Band value"], allValues: el["Time Band all values"] },
           ];
           for (const unit of variablePricingUnits) {
             const variablePricingUnitsInsertQuery = `
@@ -4189,11 +4186,7 @@ app.get("/extractGohRadio", cors(), async (req, res) => {
           await conn.query(otherRatesInsertQuery, [mediaId, otherRatesId, el["other rate"], el["discountedRate"]]);
         
           const otherRatesFields = [
-            { field: 'Buy Type', value: el["Buy Type"] },
-            { field: 'Video Type', value: el["Video Type"] },
-            { field: '1 Level Targeting', value: el["1 Level Targeting"] },
-            { field: '2 Level Targeting', value: el["2 Level Targeting"] },
-            { field: '3 Level Targeting', value: el["3 Level Targeting"] },
+            { field: 'Time Band', value: el["Time Band"] },
           ];
         
           for (const field of otherRatesFields) {
@@ -4213,6 +4206,507 @@ app.get("/extractGohRadio", cors(), async (req, res) => {
         res.status(500).send("Error inserting data");
       }
     });
+
+
+app.get("/extractGohSports", cors(), async (req, res) => {
+    const filePath = "./excel/sportsGoh.xlsx";
+    const workbook = XLSX.readFile(filePath);
+    const Sheet1 = workbook.SheetNames[0];
+    const worksheet1 = workbook.Sheets[Sheet1];
+    const Sheet2 = workbook.SheetNames[1];
+    const worksheet2 = workbook.Sheets[Sheet2];
+  
+    const ExcelJson1 = XLSX.utils.sheet_to_json(worksheet1);
+    const ExcelJson2 = XLSX.utils.sheet_to_json(worksheet2);
+  
+    var advertisingId = '1';
+    var mediaId = '1';
+    
+    conn.query('SELECT advertisingId FROM sports_advertising ORDER BY id DESC LIMIT 1', (err, result1) => {
+        if (err) throw err;
+        if (result1.length > 0) advertisingId = (parseInt(result1[0].advertisingId) + 1).toString();
+    
+        conn.query('SELECT mediaId FROM sports_medias ORDER BY id DESC LIMIT 1', (err, result2) => {
+            if (err) throw err;
+            if (result2.length > 0) mediaId = (parseInt(result2[0].mediaId) + 1).toString();
+        });
+    });
+  
+      try {
+        for (const el of ExcelJson1) {
+  
+          // Insert into sports_medias
+          const mediaInsertQuery = `
+            INSERT INTO sports_medias (id, advertisingId, mediaId, logo, unit, name, urlSlug, description, minBilling, vendorRate, cardRate, discountedRate, subTotal, totalPrice, type)
+            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+  
+          let urlSlug1 = el.name?.replace(/[\s,]+/g, '-').replace(/-+/g, '-');
+  
+          let minBilling1 = el.minBilling;
+          let minimumBilling1 = parseInt(minBilling1, 10);
+          
+          let vendor = el.vendorRate;
+          let vendorRate = parseInt(vendor, 10);
+  
+          let card = el.cardRate;
+          let cardRate = parseInt(card, 10);
+  
+          let discounted = el.discountedRate;
+          let discountedRate = parseInt(discounted, 10);
+  
+          let subTotal = minimumBilling1
+          
+          let totalPrice = subTotal + subTotal * 0.18;
+  
+          await conn.query(mediaInsertQuery, [advertisingId, mediaId, el.logo, el.unit, el.name, urlSlug1, el.description, minimumBilling1, vendorRate, cardRate, discountedRate, subTotal, totalPrice, el.type]);
+          
+          // Insert into sports_advertising
+          const advertisingInsertQuery = `
+            INSERT INTO sports_advertising (id, advertisingId, category, type, urlSlug, views, logo, name, toolName, minimumBilling, locality, state, area, country, city, pincode, lat, lng)
+            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          let urlSlug = el.adname?.replace(/[\s,]+/g, '-').replace(/-+/g, '-');
+  
+          let minBilling = el.minBilling;
+          let minimumBilling = parseInt(minBilling, 10);
+          
+          let view = el.views;
+          let views = parseInt(view, 10);
+  
+          let pin = el.pincode;
+          let pincode = parseInt(pin, 10);
+  
+          await conn.query(advertisingInsertQuery, [advertisingId, el.category, el.type, urlSlug, views, el.adlogo, el.adname, el.toolName, minimumBilling, el.locality, el.state, el.area, el.country, el.city, pincode, el.lat, el.lng]);
+    
+          // Insert into sports_attributes
+          const attributes = [
+            { name: 'Gender', value: el["Gender"],  tooltip: el["l tooltip"], icon: el["icon"]  },
+            { name: 'Duration', value: el["Duration"],  tooltip: el["tooltip"], icon: el["f_icon"]  },
+            { name: 'atr_category', value: el["atr_category"],  tooltip: el["c_tooltip"], icon: el["c_icon"]  },
+          ];
+          for (const attr of attributes) {
+            const attributesInsertQuery = `
+              INSERT INTO sports_attributes (id, advertisingId, showName, value, tooltip, icon)
+              VALUES (NULL, ?, ?, ?, ?, '')
+            `;
+            await conn.query(attributesInsertQuery, [advertisingId, attr.name, attr.value, attr.tooltip]);
+          }
+    
+          // Insert into sports_medias_additionalinfo
+          const additionalInfoFields = [
+            { key: 'Campaign Guidlines', value: el["Campaign Guidlines"] },
+          ];
+          for (const info of additionalInfoFields) {
+            const additionalInfoInsertQuery = `
+              INSERT INTO sports_medias_additionalinfo (id, mediaId, \`key\`, \`value\`)
+              VALUES (NULL, ?, ?, ?)
+            `;
+            await conn.query(additionalInfoInsertQuery, [mediaId, info.key, info.value]);
+          }
+    
+          // Insert into sports_medias_attributes
+          const mediaAttributes = [
+            { name: 'Used For', value: el["Used For"] },
+            { name: 'Ad Type', value: el["Ad Type"] },
+            { name: 'Lead Time (in days)', value: el["Lead Time (in days)"] },
+            { name: 'Span', value: el["Span"] },
+          ];
+          for (const attr of mediaAttributes) {
+            const mediaAttributesInsertQuery = `
+              INSERT INTO sports_medias_attributes (id, mediaId, showName, value)
+              VALUES (NULL, ?, ?, ?)
+            `;
+            await conn.query(mediaAttributesInsertQuery, [mediaId, attr.name, attr.value]);
+          }
+    
+          // Insert into sports_medias_pricingunits
+          if (el["insert"]) {
+            const pricingUnitsWeekInsertQuery = `
+              INSERT INTO sports_medias_pricingunits (id, mediaId, max, min, name, step, value)
+              VALUES (NULL, ?, ?, ?, 'insert', ?, ?)
+            `;
+            await conn.query(pricingUnitsWeekInsertQuery, [mediaId, el["max"], el["min"], el["step"], el["min"]]);
+          }
+    
+          // Insert into sports_medias_specs_fields
+          if (el["specification PDF"] === true) {
+            const imageFields = [
+              { key: 'Width', value: el["PDF width"] },
+              { key: 'Height', value: el["PDF height"] },
+              { key: 'Unit', value: el["PDF unit"] },
+              { key: 'Format', value: el["PDF format"] },
+              { key: 'Resolution', value: el["PDF Resolution"] },
+            ];
+            for (const field of imageFields) {
+              const specsFieldsInsertQuery = `
+                INSERT INTO sports_medias_specs_fields (id, mediaId, specsTypeId, \`key\`, \`value\`)
+                VALUES (NULL, ?, '1', ?, ?)
+              `;
+              await conn.query(specsFieldsInsertQuery, [mediaId, field.key, field.value]);
+            }
+          }
+    
+          if (el["specification video"] === true) {
+            const videoFields = [
+              { key: 'Video Width', value: el["video width"] },
+              { key: 'Video Height', value: el["video height"] },
+              { key: 'Video Unit', value: el["video unit"] },
+              { key: 'Video Format', value: el["video format"] },
+              { key: 'Other Artwork Related', value: el["video Other artwork relate"] },
+            ];
+            for (const field of videoFields) {
+              const specsFieldsInsertQuery = `
+                INSERT INTO sports_medias_specs_fields (id, mediaId, specsTypeId,  \`key\`, \`value\`)
+                VALUES (NULL, ?, '2', ?, ?)
+              `;
+              await conn.query(specsFieldsInsertQuery, [mediaId, field.key, field.value]);
+            }
+          }
+    
+          if (el["specification audio"] === true) {
+            const audioFields = [
+              { key: 'Audio Format', value: el["audio format"] }
+            ];
+            for (const field of audioFields) {
+              const specsFieldsInsertQuery = `
+                INSERT INTO sports_medias_specs_fields (id, mediaId, specsTypeId,  \`key\`, \`value\`)
+                VALUES (NULL, ?, '3', ?, ?)
+              `;
+              await conn.query(specsFieldsInsertQuery, [mediaId, field.key, field.value]);
+            }
+          }
+    
+          // Insert into sports_medias_specs_types
+          if (el["specification PDF"] === true) {
+            const specsTypesInsertQuery = `
+              INSERT INTO sports_medias_specs_types (id, mediaId, specsTypeId, type)
+              VALUES (NULL, ?, '1', 'PDF')
+            `;
+            await conn.query(specsTypesInsertQuery, [mediaId]);
+          }
+          if (el["specification video"] === true) {
+            const specsTypesInsertQuery = `
+              INSERT INTO sports_medias_specs_types (id, mediaId, specsTypeId, type)
+              VALUES (NULL, ?, '2', 'video')
+            `;
+            await conn.query(specsTypesInsertQuery, [mediaId]);
+          }
+          if (el["specification audio"] === true) {
+            const specsTypesInsertQuery = `
+              INSERT INTO sports_medias_specs_types (id, mediaId, specsTypeId, type)
+              VALUES (NULL, ?, '3', 'audio')
+            `;
+            await conn.query(specsTypesInsertQuery, [mediaId]);
+          }
+    
+          // Insert into sports_medias_variablepricingunits
+          const variablePricingUnits = [
+            { name: 'Time Band', value: el["Time Band value"], allValues: el["Time Band all values"] },
+          ];
+          for (const unit of variablePricingUnits) {
+            const variablePricingUnitsInsertQuery = `
+              INSERT INTO sports_medias_variablepricingunits (id, mediaId, \`values\`, defaultValue, name, \`value\`)
+              VALUES (NULL, ?, ?, ?, ?, ?)
+            `;
+            
+            await conn.query(variablePricingUnitsInsertQuery, [mediaId, unit.allValues, unit.value, unit.name, unit.value]);
+          }
+    
+        }
+  
+        let otherRatesId = 1;
+  
+        // Handling sheet2 data
+        for (const el of ExcelJson2) {
+          const otherRatesInsertQuery = `
+            INSERT INTO sports_media_other_rates (id, mediaId, otherRatesId, cardRate, discountedRate)
+            VALUES (NULL, ?, ?, ?, ?)
+          `;
+  
+          // Insert into sports_media_other_rates and get the insertId
+          await conn.query(otherRatesInsertQuery, [mediaId, otherRatesId, el["other rate"], el["discountedRate"]]);
+        
+          const otherRatesFields = [
+            { field: 'Time Band', value: el["Time Band"] },
+          ];
+        
+          for (const field of otherRatesFields) {
+            const otherRatesFieldInsertQuery = `
+              INSERT INTO sports_media_other_rates_field (id, mediaId, otherratesId, field, \`value\`)
+              VALUES (NULL, ?, ?, ?, ?)
+            `;
+            await conn.query(otherRatesFieldInsertQuery, [mediaId, otherRatesId, field.field, field.value]);
+          }
+          otherRatesId++;
+        }
+        
+    
+        res.send("Data inserted successfully!");
+      } catch (error) {
+        console.error("An error occurred:", error);
+        res.status(500).send("Error inserting data");
+      }
+    });
+
+
+app.get("/extractGohTelevision", cors(), async (req, res) => {
+  const filePath = "./excel/televisionGoh.xlsx";
+  const workbook = XLSX.readFile(filePath);
+  const Sheet1 = workbook.SheetNames[0];
+  const worksheet1 = workbook.Sheets[Sheet1];
+  const Sheet2 = workbook.SheetNames[1];
+  const worksheet2 = workbook.Sheets[Sheet2];
+
+  const ExcelJson1 = XLSX.utils.sheet_to_json(worksheet1);
+  const ExcelJson2 = XLSX.utils.sheet_to_json(worksheet2);
+
+  var advertisingId = '1';
+  var mediaId = '1';
+  
+  conn.query('SELECT advertisingId FROM television_advertising ORDER BY id DESC LIMIT 1', (err, result1) => {
+      if (err) throw err;
+      if (result1.length > 0) advertisingId = (parseInt(result1[0].advertisingId) + 1).toString();
+  
+      conn.query('SELECT mediaId FROM television_medias ORDER BY id DESC LIMIT 1', (err, result2) => {
+          if (err) throw err;
+          if (result2.length > 0) mediaId = (parseInt(result2[0].mediaId) + 1).toString();
+      });
+  });
+
+    try {
+      for (const el of ExcelJson1) {
+
+        // Insert into television_medias
+        const mediaInsertQuery = `
+          INSERT INTO television_medias (id, advertisingId, mediaId, logo, unit, name, urlSlug, description, minBilling, vendorRate, cardRate, discountedRate, subTotal, totalPrice, type)
+          VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        let urlSlug1 = el.name?.replace(/[\s,]+/g, '-').replace(/-+/g, '-');
+
+        let minBilling1 = el.minBilling;
+        let minimumBilling1 = parseInt(minBilling1, 10);
+        
+        let vendor = el.vendorRate;
+        let vendorRate = parseInt(vendor, 10);
+
+        let card = el.cardRate;
+        let cardRate = parseInt(card, 10);
+
+        let discounted = el.discountedRate;
+        let discountedRate = parseInt(discounted, 10);
+
+        let subTotal = minimumBilling1
+        
+        let totalPrice = subTotal + subTotal * 0.18;
+
+        await conn.query(mediaInsertQuery, [advertisingId, mediaId, el.logo, el.unit, el.name, urlSlug1, el.description, minimumBilling1, vendorRate, cardRate, discountedRate, subTotal, totalPrice, el.type]);
+        
+        // Insert into television_advertising
+        const advertisingInsertQuery = `
+          INSERT INTO television_advertising (id, advertisingId, category, type, urlSlug, views, logo, name, toolName, minimumBilling, locality, state, area, country, city, pincode, lat, lng)
+          VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        let urlSlug = el.adname?.replace(/[\s,]+/g, '-').replace(/-+/g, '-');
+
+        let minBilling = el.minBilling;
+        let minimumBilling = parseInt(minBilling, 10);
+        
+        let view = el.views;
+        let views = parseInt(view, 10);
+
+        let pin = el.pincode;
+        let pincode = parseInt(pin, 10);
+
+        await conn.query(advertisingInsertQuery, [advertisingId, el.category, el.type, urlSlug, views, el.adlogo, el.adname, el.toolName, minimumBilling, el.locality, el.state, el.area, el.country, el.city, pincode, el.lat, el.lng]);
+  
+        // Insert into television_attributes
+        const attributes = [
+          { name: 'Gender', value: el["Gender"],  tooltip: el["l tooltip"], icon: el["icon"]  },
+          { name: 'Duration', value: el["Duration"],  tooltip: el["tooltip"], icon: el["f_icon"]  },
+          { name: 'atr_category', value: el["atr_category"],  tooltip: el["c_tooltip"], icon: el["c_icon"]  },
+        ];
+        for (const attr of attributes) {
+          const attributesInsertQuery = `
+            INSERT INTO television_attributes (id, advertisingId, showName, value, tooltip, icon)
+            VALUES (NULL, ?, ?, ?, ?, '')
+          `;
+          await conn.query(attributesInsertQuery, [advertisingId, attr.name, attr.value, attr.tooltip]);
+        }
+  
+        // Insert into television_medias_additionalinfo
+        const additionalInfoFields = [
+          { key: 'Campaign Guidlines', value: el["Campaign Guidlines"] },
+        ];
+        for (const info of additionalInfoFields) {
+          const additionalInfoInsertQuery = `
+            INSERT INTO television_medias_additionalinfo (id, mediaId, \`key\`, \`value\`)
+            VALUES (NULL, ?, ?, ?)
+          `;
+          await conn.query(additionalInfoInsertQuery, [mediaId, info.key, info.value]);
+        }
+  
+        // Insert into television_medias_attributes
+        const mediaAttributes = [
+          { name: 'Used For', value: el["Used For"] },
+          { name: 'Ad Type', value: el["Ad Type"] },
+          { name: 'Lead Time (in days)', value: el["Lead Time (in days)"] },
+          { name: 'Span', value: el["Span"] },
+        ];
+        for (const attr of mediaAttributes) {
+          const mediaAttributesInsertQuery = `
+            INSERT INTO television_medias_attributes (id, mediaId, showName, value)
+            VALUES (NULL, ?, ?, ?)
+          `;
+          await conn.query(mediaAttributesInsertQuery, [mediaId, attr.name, attr.value]);
+        }
+  
+        // Insert into television_medias_pricingunits
+        if (el["Day"]) {
+          const pricingUnitsWeekInsertQuery = `
+            INSERT INTO television_medias_pricingunits (id, mediaId, max, min, name, step, value)
+            VALUES (NULL, ?, ?, ?, 'Day', ?, ?)
+          `;
+          await conn.query(pricingUnitsWeekInsertQuery, [mediaId, el["max"], el["min"], el["step"], el["min"]]);
+        }
+
+        if (el["Time(s) Played per Day"]) {
+          const pricingUnitsWeekInsertQuery = `
+            INSERT INTO television_medias_pricingunits (id, mediaId, max, min, name, step, value)
+            VALUES (NULL, ?, ?, ?, 'Time(s) Played per Day', ?, ?)
+          `;
+          await conn.query(pricingUnitsWeekInsertQuery, [mediaId, el["max"], el["min"], el["step"], el["min"]]);
+        }
+
+
+        if (el["Second"]) {
+          const pricingUnitsWeekInsertQuery = `
+            INSERT INTO television_medias_pricingunits (id, mediaId, max, min, name, step, value)
+            VALUES (NULL, ?, ?, ?, 'Second', ?, ?)
+          `;
+          await conn.query(pricingUnitsWeekInsertQuery, [mediaId, el["max"], el["min"], el["step"], el["min"]]);
+        }
+  
+        // Insert into television_medias_specs_fields
+        if (el["specification PDF"] === true) {
+          const imageFields = [
+            { key: 'Width', value: el["PDF width"] },
+            { key: 'Height', value: el["PDF height"] },
+            { key: 'Unit', value: el["PDF unit"] },
+            { key: 'Format', value: el["PDF format"] },
+            { key: 'Resolution', value: el["PDF Resolution"] },
+          ];
+          for (const field of imageFields) {
+            const specsFieldsInsertQuery = `
+              INSERT INTO television_medias_specs_fields (id, mediaId, specsTypeId, \`key\`, \`value\`)
+              VALUES (NULL, ?, '1', ?, ?)
+            `;
+            await conn.query(specsFieldsInsertQuery, [mediaId, field.key, field.value]);
+          }
+        }
+  
+        if (el["specification video"] === true) {
+          const videoFields = [
+            { key: 'Video Width', value: el["video width"] },
+            { key: 'Video Height', value: el["video height"] },
+            { key: 'Video Unit', value: el["video unit"] },
+            { key: 'Video Format', value: el["video format"] },
+            { key: 'Other Artwork Related', value: el["video Other artwork relate"] },
+          ];
+          for (const field of videoFields) {
+            const specsFieldsInsertQuery = `
+              INSERT INTO television_medias_specs_fields (id, mediaId, specsTypeId,  \`key\`, \`value\`)
+              VALUES (NULL, ?, '2', ?, ?)
+            `;
+            await conn.query(specsFieldsInsertQuery, [mediaId, field.key, field.value]);
+          }
+        }
+  
+        if (el["specification audio"] === true) {
+          const audioFields = [
+            { key: 'Audio Format', value: el["audio format"] }
+          ];
+          for (const field of audioFields) {
+            const specsFieldsInsertQuery = `
+              INSERT INTO television_medias_specs_fields (id, mediaId, specsTypeId,  \`key\`, \`value\`)
+              VALUES (NULL, ?, '3', ?, ?)
+            `;
+            await conn.query(specsFieldsInsertQuery, [mediaId, field.key, field.value]);
+          }
+        }
+  
+        // Insert into television_medias_specs_types
+        if (el["specification PDF"] === true) {
+          const specsTypesInsertQuery = `
+            INSERT INTO television_medias_specs_types (id, mediaId, specsTypeId, type)
+            VALUES (NULL, ?, '1', 'PDF')
+          `;
+          await conn.query(specsTypesInsertQuery, [mediaId]);
+        }
+        if (el["specification video"] === true) {
+          const specsTypesInsertQuery = `
+            INSERT INTO television_medias_specs_types (id, mediaId, specsTypeId, type)
+            VALUES (NULL, ?, '2', 'video')
+          `;
+          await conn.query(specsTypesInsertQuery, [mediaId]);
+        }
+        if (el["specification audio"] === true) {
+          const specsTypesInsertQuery = `
+            INSERT INTO television_medias_specs_types (id, mediaId, specsTypeId, type)
+            VALUES (NULL, ?, '3', 'audio')
+          `;
+          await conn.query(specsTypesInsertQuery, [mediaId]);
+        }
+  
+        // Insert into television_medias_variablepricingunits
+        const variablePricingUnits = [
+          { name: 'Time Band', value: el["Time Band value"], allValues: el["Time Band all values"] },
+        ];
+        for (const unit of variablePricingUnits) {
+          const variablePricingUnitsInsertQuery = `
+            INSERT INTO television_medias_variablepricingunits (id, mediaId, \`values\`, defaultValue, name, \`value\`)
+            VALUES (NULL, ?, ?, ?, ?, ?)
+          `;
+          
+          await conn.query(variablePricingUnitsInsertQuery, [mediaId, unit.allValues, unit.value, unit.name, unit.value]);
+        }
+  
+      }
+
+      let otherRatesId = 1;
+
+      // Handling sheet2 data
+      for (const el of ExcelJson2) {
+        const otherRatesInsertQuery = `
+          INSERT INTO television_media_other_rates (id, mediaId, otherRatesId, cardRate, discountedRate)
+          VALUES (NULL, ?, ?, ?, ?)
+        `;
+
+        // Insert into television_media_other_rates and get the insertId
+        await conn.query(otherRatesInsertQuery, [mediaId, otherRatesId, el["other rate"], el["discountedRate"]]);
+      
+        const otherRatesFields = [
+          { field: 'Time Band', value: el["Time Band"] },
+        ];
+      
+        for (const field of otherRatesFields) {
+          const otherRatesFieldInsertQuery = `
+            INSERT INTO television_media_other_rates_field (id, mediaId, otherratesId, field, \`value\`)
+            VALUES (NULL, ?, ?, ?, ?)
+          `;
+          await conn.query(otherRatesFieldInsertQuery, [mediaId, otherRatesId, field.field, field.value]);
+        }
+        otherRatesId++;
+      }
+      
+  
+      res.send("Data inserted successfully!");
+    } catch (error) {
+      console.error("An error occurred:", error);
+      res.status(500).send("Error inserting data");
+    }
+  });
 
 /*************************************************************************/
 
